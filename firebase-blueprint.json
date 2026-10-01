@@ -1,0 +1,195 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's unique identifier"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "The user's profile photo URL"
+        },
+        "lastLogin": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The user's last login timestamp"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role (e.g., admin, user)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The user's status (e.g., active, suspended)"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "Prompt": {
+      "title": "Prompt",
+      "description": "A generated prompt",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who generated the prompt"
+        },
+        "input": {
+          "type": "string",
+          "description": "The user's input"
+        },
+        "masterPrompt": {
+          "type": "string",
+          "description": "The generated master prompt"
+        },
+        "controls": {
+          "type": "object",
+          "description": "The controls used to generate the prompt"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the prompt was generated"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the prompt (e.g., pending, approved, rejected)"
+        },
+        "featured": {
+          "type": "boolean",
+          "description": "Whether the prompt is featured"
+        },
+        "flagged": {
+          "type": "boolean",
+          "description": "Whether the prompt is flagged"
+        },
+        "upvotes": {
+          "type": "number",
+          "description": "The number of upvotes the prompt has received"
+        }
+      },
+      "required": ["userId", "input", "masterPrompt"]
+    },
+    "Template": {
+      "title": "Template",
+      "description": "A prompt template",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the template"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the template"
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the template"
+        },
+        "visibility": {
+          "type": "string",
+          "description": "The visibility of the template (e.g., public, private)"
+        }
+      },
+      "required": ["title", "description", "category", "visibility"]
+    },
+    "Model": {
+      "title": "Model",
+      "description": "An AI model configuration",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the model"
+        },
+        "provider": {
+          "type": "string",
+          "description": "The provider of the model"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the model"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the model is enabled"
+        }
+      },
+      "required": ["name", "provider", "description", "enabled"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User feedback",
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string",
+          "description": "The user's email or identifier"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of feedback (e.g., Bug Report, Feature Request)"
+        },
+        "message": {
+          "type": "string",
+          "description": "The feedback message"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date the feedback was submitted"
+        },
+        "resolved": {
+          "type": "boolean",
+          "description": "Whether the feedback has been resolved"
+        }
+      },
+      "required": ["user", "type", "message", "date", "resolved"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles"
+    },
+    "/prompts/{promptId}": {
+      "schema": {
+        "$ref": "#/entities/Prompt"
+      },
+      "description": "Generated prompts"
+    },
+    "/templates/{templateId}": {
+      "schema": {
+        "$ref": "#/entities/Template"
+      },
+      "description": "Prompt templates"
+    },
+    "/models/{modelId}": {
+      "schema": {
+        "$ref": "#/entities/Model"
+      },
+      "description": "AI models"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": {
+        "$ref": "#/entities/Feedback"
+      },
+      "description": "User feedback"
+    }
+  }
+}

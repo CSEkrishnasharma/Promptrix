@@ -1,0 +1,138 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - The user's unique identifier
+    //   - email: string (required, email format) - The user's email address
+    //   - displayName: string (optional) - The user's display name
+    //   - photoURL: string (optional) - The user's profile photo URL
+    //   - lastLogin: timestamp (optional) - The user's last login timestamp
+    //   - role: string (optional)
+    //   - status: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (request.auth.token.email == "the5sfounder@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    // Ensures non-admin users cannot modify protected fields (role, status)
+    function protectedFieldsUnchanged() {
+      return (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
+          && (!('status' in request.resource.data) || request.resource.data.status == resource.data.status);
+    }
+
+    // Ensures the email field in the document matches the authenticated user's email
+    function emailMatchesAuth() {
+      return !('email' in request.resource.data) || request.resource.data.email == request.auth.token.email;
+    }
+
+    // Validates prompt data on creation
+    function isValidPrompt(data) {
+      return data.keys().hasAll(['userId', 'input', 'masterPrompt', 'controls', 'createdAt'])
+          && data.userId is string && data.userId == request.auth.uid
+          && data.input is string && data.input.size() > 0 && data.input.size() <= 5000
+          && data.masterPrompt is string && data.masterPrompt.size() <= 20000;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             request.resource.data[field] == null ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             isValidEmail(data.email) &&
+             isValidOptionalString('displayName', 0, 100) &&
+             isValidOptionalString('photoURL', 0, 2048) &&
+             (!( 'lastLogin' in data ) || data.lastLogin is timestamp);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && uidUnchanged();
+      // Owners can update their own profile but CANNOT change role, status, or email
+      // Only admins (verified by token email) can modify protected fields
+      allow update: if isAuthenticated() && (
+        (isOwner(userId) && protectedFieldsUnchanged() && emailMatchesAuth() && uidNotModified()) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /prompts/{promptId} {
+      // Users can only read their OWN prompts; admins can read all
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      // Validate prompt data structure and enforce size limits on creation
+      allow create: if isAuthenticated() && isValidPrompt(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    match /templates/{templateId} {
+      allow read: if isAuthenticated() || resource.data.visibility == 'public';
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /models/{modelId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
